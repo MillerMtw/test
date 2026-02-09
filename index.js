@@ -12,7 +12,7 @@ app.use(express.json());
 
 if (!fs.existsSync(DB)) {
   fs.writeFileSync(DB, JSON.stringify({
-    totalExecs: 0,
+    executions: 0,
     users: {}
   }, null, 2));
 }
@@ -20,50 +20,42 @@ if (!fs.existsSync(DB)) {
 const loadDB = () => JSON.parse(fs.readFileSync(DB, "utf8"));
 const saveDB = (db) => fs.writeFileSync(DB, JSON.stringify(db, null, 2));
 
-app.get("/", (_, res) => res.send("DZ API ONLINE"));
+app.get("/", (_, res) => res.send("API ONLINE"));
 
 app.get("/stats", (_, res) => {
   const db = loadDB();
   res.json({
     "All-Time": Object.keys(db.users).length,
-    "Executions": db.totalExecs
+    "Executions": db.executions
   });
 });
 
 app.post("/exec", (req, res) => {
   const { action, nickname, password, license } = req.body;
-  
-  if (!action || !nickname || !password) {
-    return res.status(400).json({ error: "Missing data" });
-  }
+  if (!action || !nickname || !password) return res.status(400).json({ error: "Missing data" });
 
   const db = loadDB();
   const userKey = nickname.trim().toLowerCase();
 
   if (action === "register") {
-    if (db.users[userKey]) {
-      return res.status(400).json({ status: "error", message: "UserExists" });
-    }
+    if (db.users[userKey]) return res.status(400).json({ status: "error" });
 
     db.users[userKey] = {
       username: nickname,
       password: password,
-      license: license || "N/A"
+      license: license
     };
-    
-    db.totalExecs++;
+
+    db.executions++;
     saveDB(db);
     return res.status(200).json({ status: "success" });
   }
 
   if (action === "login") {
     const user = db.users[userKey];
+    if (!user || user.password !== password) return res.status(401).json({ status: "error" });
 
-    if (!user || user.password !== password) {
-      return res.status(401).json({ status: "error", message: "Invalid" });
-    }
-
-    db.totalExecs++;
+    db.executions++;
     saveDB(db);
 
     return res.status(200).json({
@@ -72,7 +64,7 @@ app.post("/exec", (req, res) => {
     });
   }
 
-  res.status(404).json({ error: "ActionNotFound" });
+  res.status(404).json({ error: "NotFound" });
 });
 
-app.listen(PORT, () => console.log("Servidor corriendo en puerto", PORT));
+app.listen(PORT, () => console.log("Servidor corriendo"));
