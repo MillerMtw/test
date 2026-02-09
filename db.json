@@ -1,10 +1,9 @@
 {
-  "users": {},
-  "daily": {},
   "total": 0,
   "newToday": 0,
+  "users": {},
+  "daily": {},
   "online": {},
   "logs": [],
-  "ownerToken": null,
-  "apiRoot": ""
+  "ownerToken": null
 }
