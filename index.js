@@ -16,7 +16,8 @@ const loadDB = () => {
       fs.writeFileSync(DB, JSON.stringify(initial, null, 2));
       return initial;
     }
-    return JSON.parse(fs.readFileSync(DB, "utf8"));
+    const data = JSON.parse(fs.readFileSync(DB, "utf8"));
+    return { users: data.users || {} };
   } catch (e) {
     return { users: {} };
   }
@@ -24,13 +25,14 @@ const loadDB = () => {
 
 const saveDB = (db) => fs.writeFileSync(DB, JSON.stringify(db, null, 2));
 
-app.get("/", (_, res) => res.send("DZ API ONLINE"));
+app.get("/", (_, res) => {
+  const db = loadDB();
+  res.json(db.users);
+});
 
 app.get("/stats", (_, res) => {
   const db = loadDB();
-  res.json({
-    Registered_Users: db.users || {}
-  });
+  res.json(db.users);
 });
 
 app.post("/exec", (req, res) => {
@@ -41,7 +43,7 @@ app.post("/exec", (req, res) => {
   const userKey = nickname.trim().toLowerCase();
 
   if (action === "register") {
-    if (db.users[userKey]) return res.status(400).json({ status: "error", message: "UserExists" });
+    if (db.users[userKey]) return res.status(400).json({ status: "error" });
 
     db.users[userKey] = {
       username: nickname,
@@ -58,8 +60,7 @@ app.post("/exec", (req, res) => {
     if (!user || user.password !== password) return res.status(401).json({ status: "error" });
 
     return res.status(200).json({
-      status: "success",
-      message: "Logged in successfully"
+      status: "success"
     });
   }
 
