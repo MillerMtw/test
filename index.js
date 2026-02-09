@@ -12,13 +12,13 @@ app.use(express.json());
 const loadDB = () => {
   try {
     if (!fs.existsSync(DB)) {
-      const initial = { total: 0, users: {} };
+      const initial = { users: {} };
       fs.writeFileSync(DB, JSON.stringify(initial, null, 2));
       return initial;
     }
     return JSON.parse(fs.readFileSync(DB, "utf8"));
   } catch (e) {
-    return { total: 0, users: {} };
+    return { users: {} };
   }
 };
 
@@ -29,8 +29,7 @@ app.get("/", (_, res) => res.send("DZ API ONLINE"));
 app.get("/stats", (_, res) => {
   const db = loadDB();
   res.json({
-    Executions: db.total || 0,
-    Users_Database: db.users || {}
+    Registered_Users: db.users || {}
   });
 });
 
@@ -50,7 +49,6 @@ app.post("/exec", (req, res) => {
       license: license || "N/A"
     };
 
-    db.total = (db.total || 0) + 1;
     saveDB(db);
     return res.status(200).json({ status: "success" });
   }
@@ -58,9 +56,6 @@ app.post("/exec", (req, res) => {
   if (action === "login") {
     const user = db.users[userKey];
     if (!user || user.password !== password) return res.status(401).json({ status: "error" });
-
-    db.total = (db.total || 0) + 1;
-    saveDB(db);
 
     return res.status(200).json({
       status: "success",
