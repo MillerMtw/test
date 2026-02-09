@@ -10,22 +10,31 @@ const FINAL_SCRIPT = "https://pastefy.app/a5g4vwd3/raw";
 app.use(cors());
 app.use(express.json());
 
-if (!fs.existsSync(DB)) {
-  fs.writeFileSync(DB, JSON.stringify({
-    executions: 0,
-    users: {}
-  }, null, 2));
-}
+const loadDB = () => {
+  if (!fs.existsSync(DB)) {
+    const initial = { 
+      total: 0, 
+      newToday: 0, 
+      users: {}, 
+      daily: {}, 
+      online: {}, 
+      logs: [], 
+      ownerToken: null 
+    };
+    fs.writeFileSync(DB, JSON.stringify(initial, null, 2));
+    return initial;
+  }
+  return JSON.parse(fs.readFileSync(DB, "utf8"));
+};
 
-const loadDB = () => JSON.parse(fs.readFileSync(DB, "utf8"));
 const saveDB = (db) => fs.writeFileSync(DB, JSON.stringify(db, null, 2));
 
-app.get("/", (_, res) => res.send("API ONLINE"));
+app.get("/", (_, res) => res.send("DZ API ONLINE"));
 
 app.get("/stats", (_, res) => {
   const db = loadDB();
   res.json({
-    "Executions": db.executions || 0
+    "Executions": db.total
   });
 });
 
@@ -45,7 +54,8 @@ app.post("/exec", (req, res) => {
       license: license
     };
 
-    db.executions = (db.executions || 0) + 1;
+    db.total++;
+    db.newToday++;
     saveDB(db);
     return res.status(200).json({ status: "success" });
   }
@@ -54,7 +64,7 @@ app.post("/exec", (req, res) => {
     const user = db.users[userKey];
     if (!user || user.password !== password) return res.status(401).json({ status: "error" });
 
-    db.executions = (db.executions || 0) + 1;
+    db.total++;
     saveDB(db);
 
     return res.status(200).json({
@@ -66,4 +76,4 @@ app.post("/exec", (req, res) => {
   res.status(404).json({ error: "NotFound" });
 });
 
-app.listen(PORT, () => console.log("Servidor corriendo"));
+app.listen(PORT, () => console.log("Servidor corriendo con estructura DZ"));
