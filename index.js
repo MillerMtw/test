@@ -25,7 +25,7 @@ app.get("/", (_, res) => res.send("API ONLINE"));
 app.get("/stats", (_, res) => {
   const db = loadDB();
   res.json({
-    "Executions": db.executions
+    "Executions": db.executions || 0
   });
 });
 
@@ -45,7 +45,7 @@ app.post("/exec", (req, res) => {
       license: license
     };
 
-    db.executions++;
+    db.executions = (db.executions || 0) + 1;
     saveDB(db);
     return res.status(200).json({ status: "success" });
   }
@@ -54,7 +54,7 @@ app.post("/exec", (req, res) => {
     const user = db.users[userKey];
     if (!user || user.password !== password) return res.status(401).json({ status: "error" });
 
-    db.executions++;
+    db.executions = (db.executions || 0) + 1;
     saveDB(db);
 
     return res.status(200).json({
