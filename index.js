@@ -25,7 +25,6 @@ app.get("/", (_, res) => res.send("API ONLINE"));
 app.get("/stats", (_, res) => {
   const db = loadDB();
   res.json({
-    "All-Time": Object.keys(db.users).length,
     "Executions": db.executions
   });
 });
