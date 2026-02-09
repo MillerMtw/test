@@ -5,9 +5,19 @@ import cors from "cors";
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DB = "./db.json";
+const FINAL_SCRIPT = "https://pastefy.app/a5g4vwd3/raw";
 
 app.use(cors());
 app.use(express.json());
+
+if (!fs.existsSync(DB)) {
+  fs.writeFileSync(DB, JSON.stringify({
+    totalExecs: 0,
+    users: {},
+    online: {},
+    logs: []
+  }, null, 2));
+}
 
 const loadDB = () => JSON.parse(fs.readFileSync(DB, "utf8"));
 const saveDB = (db) => fs.writeFileSync(DB, JSON.stringify(db, null, 2));
@@ -20,44 +30,63 @@ app.get("/stats", (_, res) => {
   const t = today();
   const now = Date.now();
 
-  const onlineUsers = Object.keys(db.online).filter(
-    id => now - db.online[id] < 35000
-  );
+  const activeUsers = Object.keys(db.online).filter(
+    id => now - db.online[id] < 45000
+  ).length;
 
   res.json({
-    "Executions": db.total,
-    "REGISTERED USERS": Object.keys(db.users).length,
-    "All-Time": db.newToday,
-    "Active Clients": onlineUsers.length,
-    "todayExecutions": db.daily[t] ? Object.keys(db.daily[t]).length : 0
+    "All-Time": Object.keys(db.users).length,
+    "Executions": db.totalExecs
   });
 });
 
-app.post("/exec", (req, res) => {
-  const { userId, username } = req.body;
-  if (!userId) return res.status(400).json({ error: "Missing userId" });
+app.post("/api/auth", (req, res) => {
+  const { action, nickname, password, license } = req.body;
+  if (!action || !nickname || !password) return res.status(400).json({ error: "Missing data" });
 
   const db = loadDB();
-  const t = today();
+  const cleanNick = nickname.trim().toLowerCase();
 
-  if (!db.users[userId]) {
-    db.users[userId] = { username, firstSeen: Date.now() };
-    db.newToday++;
+  if (action === "register") {
+    if (db.users[cleanNick]) {
+      return res.status(400).json({ status: "error", message: "UserExists" });
+    }
+
+    db.users[cleanNick] = {
+      username: nickname,
+      password: password,
+      license: license || "N/A",
+      regDate: today()
+    };
+
+    saveDB(db);
+    return res.status(200).json({ status: "success" });
   }
 
-  if (!db.daily[t]) db.daily[t] = {};
-  if (!db.daily[t][userId]) {
-    db.daily[t][userId] = true;
-    db.total++;
+  if (action === "login") {
+    const user = db.users[cleanNick];
+
+    if (!user || user.password !== password) {
+      return res.status(401).json({ status: "error", message: "Invalid" });
+    }
+
+    db.totalExecs++;
+    db.online[cleanNick] = Date.now();
+    db.logs.push({
+      user: nickname,
+      time: new Date().toLocaleString()
+    });
+
+    if (db.logs.length > 100) db.logs.shift();
+    saveDB(db);
+
+    return res.status(200).json({
+      status: "success",
+      script: FINAL_SCRIPT
+    });
   }
 
-  db.online[userId] = Date.now();
-  db.logs.push({ time: Date.now(), userId, username });
-
-  if (db.logs.length > 1000) db.logs.shift();
-  saveDB(db);
-
-  res.json({ ok: true });
+  res.status(404).json({ error: "ActionNotFound" });
 });
 
-app.listen(PORT, () => console.log("DZ API corriendo en puerto", PORT));
+app.listen(PORT, () => console.log("Servidor corriendo en puerto", PORT));
