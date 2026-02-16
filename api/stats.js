@@ -19,11 +19,13 @@ export default async function handler(req, res) {
         if (error) throw error;
 
         const total = allStats.length;
-        const hoyStr = new Date().toISOString().split('T')[0];
+        const ahora = new Date();
+        const hoyStr = ahora.toISOString().split('T')[0];
         const todayExecs = allStats.filter(s => s.created_at.startsWith(hoyStr)).length;
         
-        const diezMinAgo = new Date(Date.now() - 10 * 60000).toISOString();
-        const activos = [...new Set(allStats.filter(s => s.created_at >= diezMinAgo).map(s => s.user_id))].length;
+        // Margen de 7 segundos para evitar parpadeos por lag
+        const limiteActivos = new Date(ahora.getTime() - 7 * 1000).toISOString();
+        const activos = [...new Set(allStats.filter(s => s.created_at >= limiteActivos).map(s => s.user_id))].length;
 
         const countryCounts = allStats.reduce((acc, curr) => {
             const c = curr.country || 'Unknown';
