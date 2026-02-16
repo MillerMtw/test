@@ -23,7 +23,6 @@ export default async function handler(req, res) {
         const hoyStr = ahora.toISOString().split('T')[0];
         const todayExecs = allStats.filter(s => s.created_at.startsWith(hoyStr)).length;
         
-        // Margen de 7 segundos para evitar parpadeos por lag
         const limiteActivos = new Date(ahora.getTime() - 7 * 1000).toISOString();
         const activos = [...new Set(allStats.filter(s => s.created_at >= limiteActivos).map(s => s.user_id))].length;
 
@@ -38,7 +37,8 @@ export default async function handler(req, res) {
             .map(([name, count]) => `${name}: ${count}`)
             .join(' / ');
 
-        const responseText = `ACTIVE: ${activos}  TODAY: ${todayExecs}  ALL TIME: ${total} / COUNTRIES: ${countriesFormatted || "NONE"}`;
+        // Formato solicitado: Todo separado por /
+        const responseText = `ACTIVE: ${activos} / TODAY: ${todayExecs} / ALL TIME: ${total} / COUNTRIES: ${countriesFormatted || "NONE"}`;
         
         return res.status(200).send(responseText);
 
