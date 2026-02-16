@@ -11,22 +11,12 @@ export default async function handler(req, res) {
             const { country, userId } = req.body;
             const uId = String(userId);
 
-            const { data: existing } = await supabase
-                .from('stats')
-                .select('*')
-                .eq('user_id', uId)
-                .single();
-
-            if (existing) {
-                await supabase
-                    .from('stats')
-                    .update({ created_at: new Date().toISOString(), country: country || existing.country })
-                    .eq('user_id', uId);
-            } else {
-                await supabase.from('stats').insert([
-                    { country: country || 'Unknown', user_id: uId }
-                ]);
-            }
+            // UPSERT: Si el user_id existe, actualiza created_at. Si no, inserta nuevo.
+            await supabase.from('stats').upsert(
+                { user_id: uId, country: country || 'Unknown', created_at: new Date().toISOString() },
+                { onConflict: 'user_id' }
+            );
+            
             return res.status(200).json({ success: true });
         }
 
@@ -38,6 +28,8 @@ export default async function handler(req, res) {
         
         const total = allStats.length;
         const todayExecs = allStats.filter(s => s.created_at.startsWith(hoyStr)).length;
+        
+        // Margen de 7 segundos para el ACTIVE
         const limiteActivos = new Date(ahora.getTime() - 7 * 1000).toISOString();
         const activos = allStats.filter(s => s.created_at >= limiteActivos).length;
 
