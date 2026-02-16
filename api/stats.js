@@ -6,10 +6,10 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
         const { country, userId } = req.body;
         
-        await kv.incr('stats:total'); // Total histórico
-        await kv.incr(`stats:day:${today}`); // Hoy
-        if (country) await kv.zincrby('stats:countries', 1, country.trim()); // Top Países
-        if (userId) await kv.set(`active:${userId}`, 'true', { ex: 300 }); // Activo por 5 min
+        await kv.incr('stats:total'); 
+        await kv.incr(`stats:day:${today}`); 
+        if (country) await kv.zincrby('stats:countries', 1, country.trim()); 
+        if (userId) await kv.set(`active:${userId}`, 'true', { ex: 300 });
         
         return res.status(200).json({ success: true });
     }
