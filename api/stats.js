@@ -9,22 +9,37 @@ export default async function handler(req, res) {
     try {
         if (req.method === 'POST') {
             const { country, userId } = req.body;
-            await supabase.from('stats').insert([
-                { country: country || 'Unknown', user_id: String(userId) }
-            ]);
+            const uId = String(userId);
+
+            const { data: existing } = await supabase
+                .from('stats')
+                .select('*')
+                .eq('user_id', uId)
+                .single();
+
+            if (existing) {
+                await supabase
+                    .from('stats')
+                    .update({ created_at: new Date().toISOString(), country: country || existing.country })
+                    .eq('user_id', uId);
+            } else {
+                await supabase.from('stats').insert([
+                    { country: country || 'Unknown', user_id: uId }
+                ]);
+            }
             return res.status(200).json({ success: true });
         }
 
         const { data: allStats, error } = await supabase.from('stats').select('*');
         if (error) throw error;
 
-        const total = allStats.length;
         const ahora = new Date();
         const hoyStr = ahora.toISOString().split('T')[0];
-        const todayExecs = allStats.filter(s => s.created_at.startsWith(hoyStr)).length;
         
+        const total = allStats.length;
+        const todayExecs = allStats.filter(s => s.created_at.startsWith(hoyStr)).length;
         const limiteActivos = new Date(ahora.getTime() - 7 * 1000).toISOString();
-        const activos = [...new Set(allStats.filter(s => s.created_at >= limiteActivos).map(s => s.user_id))].length;
+        const activos = allStats.filter(s => s.created_at >= limiteActivos).length;
 
         const countryCounts = allStats.reduce((acc, curr) => {
             const c = curr.country || 'Unknown';
@@ -37,7 +52,6 @@ export default async function handler(req, res) {
             .map(([name, count]) => `${name}: ${count}`)
             .join(' / ');
 
-        // Formato solicitado: Todo separado por /
         const responseText = `ACTIVE: ${activos} / TODAY: ${todayExecs} / ALL TIME: ${total} / COUNTRIES: ${countriesFormatted || "NONE"}`;
         
         return res.status(200).send(responseText);
