@@ -10,13 +10,25 @@ export default async function handler(req, res) {
         if (req.method === 'POST') {
             const { country, userId } = req.body;
             const uId = String(userId);
+            const ahoraIso = new Date().toISOString();
 
-            // UPSERT: Si el user_id existe, actualiza created_at. Si no, inserta nuevo.
-            await supabase.from('stats').upsert(
-                { user_id: uId, country: country || 'Unknown', created_at: new Date().toISOString() },
-                { onConflict: 'user_id' }
-            );
-            
+            const { data: userExists } = await supabase.from('stats').select('user_id').eq('user_id', uId).single();
+
+            if (userExists) {
+                await supabase.from('stats').update({ 
+                    created_at: ahoraIso, 
+                    country: country || 'Unknown' 
+                }).eq('user_id', uId);
+            } else {
+                await supabase.from('stats').insert([
+                    { 
+                        user_id: uId, 
+                        country: country || 'Unknown', 
+                        created_at: ahoraIso,
+                        first_seen: ahoraIso 
+                    }
+                ]);
+            }
             return res.status(200).json({ success: true });
         }
 
@@ -29,7 +41,9 @@ export default async function handler(req, res) {
         const total = allStats.length;
         const todayExecs = allStats.filter(s => s.created_at.startsWith(hoyStr)).length;
         
-        // Margen de 7 segundos para el ACTIVE
+        // Usuarios cuya primera vez fue hoy
+        const newUsersToday = allStats.filter(s => s.first_seen && s.first_seen.startsWith(hoyStr)).length;
+        
         const limiteActivos = new Date(ahora.getTime() - 7 * 1000).toISOString();
         const activos = allStats.filter(s => s.created_at >= limiteActivos).length;
 
@@ -44,7 +58,7 @@ export default async function handler(req, res) {
             .map(([name, count]) => `${name}: ${count}`)
             .join(' / ');
 
-        const responseText = `Actives: ${activos} / Today: ${todayExecs} / All time: ${total} / Countries: ${countriesFormatted || "NONE"}`;
+        const responseText = `Active: ${activos} / New: ${newUsersToday} / Today: ${todayExecs} / All time: ${total} / Countries: ${countriesFormatted || "NONE"}`;
         
         return res.status(200).send(responseText);
 
