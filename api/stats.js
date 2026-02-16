@@ -13,7 +13,6 @@ export default async function handler(req, res) {
             return res.status(200).json({ success: true });
         }
 
-        // Si es GET (lo que ves en el navegador)
         const total = await kv.get('stats:total') || 0;
         const hoy = await kv.get(`stats:day:${today}`) || 0;
         const activosKeys = await kv.keys('active:*');
@@ -21,16 +20,16 @@ export default async function handler(req, res) {
         const topPaisesRaw = await kv.zrange('stats:countries', 0, 2, { rev: true, withScores: true });
 
         let topPaisesStr = "";
-        if (topPaisesRaw) {
+        if (topPaisesRaw && topPaisesRaw.length > 0) {
             for (let i = 0; i < topPaisesRaw.length; i += 2) {
                 topPaisesStr += `${topPaisesRaw[i]}: ${topPaisesRaw[i+1]} `;
             }
         }
 
-        return res.status(200).send(`ACTIVOS: ${activos} | EJECUCIONES HOY: ${hoy} | TOTAL EJECUCIONES: ${total} | TOP PAISES: ${topPaisesStr || "N/A"}`);
+        const respuestaText = `ACTIVOS: ${activos} | EJECUCIONES HOY: ${hoy} | TOTAL EJECUCIONES: ${total} | TOP PAISES: ${topPaisesStr || "N/A"}`;
+        return res.status(200).send(respuestaText);
 
     } catch (error) {
-        console.error(error);
-        return res.status(500).send("Error de conexión con KV: Asegúrate de conectar el Storage en el panel de Vercel.");
+        return res.status(500).send("Error: Verifica que el Storage KV esté conectado en el panel de Vercel.");
     }
 }
