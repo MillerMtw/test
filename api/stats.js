@@ -56,7 +56,7 @@ export default async function handler(req, res) {
             .map(([name, count]) => `${name}: ${count}`)
             .join(' / ');
 
-        const responseText = `Online: ${activos} / Today: ${todayExecs} / New Users: ${newUsersToday} / All Time: ${total} / Countries: ${countriesFormatted || "NONE"}`;
+        const responseText = `Online: ${activos} / New Users: ${newUsersToday} / Today: ${todayExecs} / All Time: ${total} / Countries: ${countriesFormatted || "NONE"}`;
         
         return res.status(200).send(responseText);
 
