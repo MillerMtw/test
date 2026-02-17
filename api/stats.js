@@ -40,25 +40,12 @@ export default async function handler(req, res) {
         
         const total = allStats.length;
         const todayExecs = allStats.filter(s => s.created_at.startsWith(hoyStr)).length;
-        
-        // Usuarios cuya primera vez fue hoy
         const newUsersToday = allStats.filter(s => s.first_seen && s.first_seen.startsWith(hoyStr)).length;
         
         const limiteActivos = new Date(ahora.getTime() - 7 * 1000).toISOString();
         const activos = allStats.filter(s => s.created_at >= limiteActivos).length;
 
-        const countryCounts = allStats.reduce((acc, curr) => {
-            const c = curr.country || 'Unknown';
-            acc[c] = (acc[c] || 0) + 1;
-            return acc;
-        }, {});
-
-        const countriesFormatted = Object.entries(countryCounts)
-            .sort((a, b) => b[1] - a[1])
-            .map(([name, count]) => `${name}: ${count}`)
-            .join(' / ');
-
-        const responseText = `Active: ${activos} / New: ${newUsersToday} / Today: ${todayExecs} / All time: ${total} / Countries: ${countriesFormatted || "NONE"}`;
+        const responseText = `Online: ${activos} Today: ${todayExecs} New Users: ${newUsersToday} All Time: ${total}`;
         
         return res.status(200).send(responseText);
 
