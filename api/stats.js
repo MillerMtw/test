@@ -45,7 +45,18 @@ export default async function handler(req, res) {
         const limiteActivos = new Date(ahora.getTime() - 7 * 1000).toISOString();
         const activos = allStats.filter(s => s.created_at >= limiteActivos).length;
 
-        const responseText = `Online: ${activos} Today: ${todayExecs} New Users: ${newUsersToday} All Time: ${total}`;
+        const countryCounts = allStats.reduce((acc, curr) => {
+            const c = curr.country || 'Unknown';
+            acc[c] = (acc[c] || 0) + 1;
+            return acc;
+        }, {});
+
+        const countriesFormatted = Object.entries(countryCounts)
+            .sort((a, b) => b[1] - a[1])
+            .map(([name, count]) => `${name}: ${count}`)
+            .join(' / ');
+
+        const responseText = `Online: ${activos} / Today: ${todayExecs} / New Users: ${newUsersToday} / All Time: ${total} / Countries: ${countriesFormatted || "NONE"}`;
         
         return res.status(200).send(responseText);
 
